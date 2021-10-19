@@ -14,7 +14,7 @@ passed to `f` is the (delimited) continuation of the `shift` expression.
 See tests/basic.rs for examples.
 
 Decon is still under development and anything other than the examples may not work. Specifically, `shift` inside control
-flows (`if`, `loop`, etc.) do not work for now.
+flows (`if` branches, `loop`, etc.) do not work for now.
 
 ## Examples
 
@@ -75,7 +75,7 @@ fn flip<S: Ord>(cont: Cont<bool, BTreeSet<S>>) -> BTreeSet<S> {
 ## Limitations
 
 1. Decon is implemented syntactically, so all `shift`s must lexically appear in the body of `#[reset]`. One may however
-   use macros to split the body of the `#[reset]` function. Alternative implementations typically catch stack unwinding,
+   use macros to split the body of a `#[reset]` function. Alternative implementations typically catch stack unwinding,
    which don't have this restriction.
-2. Decon's AST traversing order is undefined, i.e. if there are multiple `shift`s in a single statement, the order of
+2. Decon's AST traversing order is undefined, i.e., if there are multiple `shift`s in a single statement, the order of
    continuations may differ from the actual execution order. Spliting such statements by `let`s is highly recommened.
