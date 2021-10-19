@@ -16,6 +16,29 @@ passed to `f` is the (delimited) continuation of the `shift` expression.
 
 ### Yin-Yang Puzzle
 
+> https://www.zhihu.com/question/27683900
+
+```rust
+struct Rec(Rc<Cont<Rec, ()>>);
+
+#[reset]
+fn yinyang() {
+    let yin = shift(|cont: Cont<Rec, ()>| {
+        let cont = Rc::new(cont);
+        cont(Rec(cont.clone()))
+    });
+    print!("@"); stdout().flush().unwrap();
+
+    let yang = shift(|cont: Cont<Rec, ()>| {
+        let cont = Rc::new(cont);
+        cont(Rec(cont.clone()))
+    });
+    print!("."); stdout().flush().unwrap();
+
+    yin.0(yang)
+}
+```
+
 ## Performance
 
 
@@ -23,6 +46,6 @@ passed to `f` is the (delimited) continuation of the `shift` expression.
 
 1. Decon is implemented syntactically, so all `shift`s must lexically appear in the body of `#[reset]`. One may however
    use macros to split the body of the `#[reset]` function. Alternative implementations typically catch stack unwinding,
-   which does not have this restriction.
-2. Decon's AST traversing order is undefined, meaning if there are multiple `shift`s in a single statement, the order of
-   continuation may differ from the actual execution. Spliting such statements by `let`s is highly recommened.
+   which don't have this restriction.
+2. Decon's AST traversing order is undefined, i.e. if there are multiple `shift`s in a single statement, the order of
+   continuations may differ from the actual execution order. Spliting such statements by `let`s is highly recommened.
