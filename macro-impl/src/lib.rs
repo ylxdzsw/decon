@@ -28,7 +28,7 @@ pub fn reset(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> 
         };
 
         inner_most_body.push(Stmt::Expr(tail_call));
-        let continuation = loop { // how to write this clusterfuck properly?
+        let continuation = loop { // how to write this clusterfuck properly? A possible way: make this loop a recursive call so we can directly interpolate the body in the quote
             if let Stmt::Expr(Expr::Call(expr_call)) = inner_most_body.last_mut().unwrap() {
                 match opt {
                     ContinuationOption::ContBox => if let Expr::Call(expr_call) = &mut expr_call.args[0] {
