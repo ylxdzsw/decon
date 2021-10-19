@@ -6,9 +6,4 @@ pub type ContBox<T, S> = Box<dyn Fn(T) -> S>;
 pub type ContRef<'a, T, S> = &'a dyn Fn(T) -> S;
 pub type ContMut<'a, T, S> = &'a mut dyn Fn(T) -> S;
 
-
-// roadmap
-// 1. a submodule for non-deterministic
-// 2. examples and benchmark
-// 3. inline
-// 4. borrowed continuation
+// TODO: inlining closures? it may also simplify the yin yang example

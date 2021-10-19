@@ -8,6 +8,5 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-syn = { version = "1.0", features = ["full", "visit-mut", "extra-traits"] }
-proc-macro2 = "1.0"
+syn = { version = "1.0", features = ["full", "visit-mut"] }
 uuid = { version = "0.8", features = ["v4"] }

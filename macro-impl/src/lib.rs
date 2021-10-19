@@ -1,16 +1,9 @@
-use proc_macro2::{self, Ident, Span, TokenStream};
-use syn::{Expr, ExprPath, Stmt, __private::ToTokens, parse_quote, visit_mut::{self, VisitMut}};
+use syn::{Expr, ExprPath, Ident, Stmt, __private::{Span, ToTokens}, parse_quote, visit_mut::{self, VisitMut}};
 use uuid::Uuid;
 
 #[proc_macro_attribute]
 pub fn reset(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    _reset(input.into()).into()
-}
-
-fn _reset(input: TokenStream) -> TokenStream {
-    let mut func: syn::ItemFn = syn::parse2(input).unwrap();
-
-    // println!("{:?}", func);
+    let mut func: syn::ItemFn = syn::parse(input).unwrap();
 
     let mut stmts = core::mem::take(&mut func.block.stmts);
     let mut inner_most_body = &mut func.block.stmts;
@@ -68,7 +61,7 @@ fn _reset(input: TokenStream) -> TokenStream {
     }
 
     inner_most_body.extend(stmts.into_iter());
-    func.into_token_stream()
+    func.into_token_stream().into()
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -150,29 +143,3 @@ fn transform(stmt: &mut Stmt) -> Option<(ContinuationOption, Expr, Ident)> {
     visitor.visit_expr_mut(expr);
     visitor.result
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    
-    #[test]
-    fn test() {
-        let text = r#"
-        fn raw(n: usize) -> usize {
-            let a = shift(|cont| {
-                cont(1) + cont(2)
-            }, ContMut);
-            println!("{}", a);
-            let b = shift(|cont| {
-                cont(3) + 4
-            });
-            a + b
-        }
-        "#;
-
-        _reset(text.parse().unwrap());
-    }
-}
-
-// TODO: give warning if there are more than one `shift` in a single Stmt, as our visiting order may not be the execution order
-// TODO: figure out span and improve error reporting

@@ -12,8 +12,6 @@ passed to `f` is the (delimited) continuation of the `shift` expression.
 
 ## Examples
 
-### NQueens
-
 ### Yin-Yang Puzzle
 
 > https://www.zhihu.com/question/27683900
@@ -38,6 +36,38 @@ fn yinyang() {
     yin.0(yang)
 }
 ```
+
+### Non-deterministic
+
+The following program will return a set `{-2, -1, 0, 1, 2, 3, 4}`. It corresponds to the `list` monad in effect
+handlers. Unfortunately, as Decon is lexically scoped and statically typed, `f()` cannot simply return `i32` and the
+implementations of `choose` and `flip` cannot be changed at call site.
+
+```rust
+#[reset]
+fn f() -> BTreeSet<i32> {
+    let a = shift(choose(0..=2));
+    let b = shift(choose(0..=2));
+    if shift(flip()) {
+        [a + b].into_iter().collect()
+    } else {
+        [a - b].into_iter().collect()
+    }
+}
+
+fn choose<T, S: Ord>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(Cont<T, BTreeSet<S>>) -> BTreeSet<S> {
+    move |cont| {
+        iter.into_iter().flat_map(cont).collect()
+    }
+}
+
+fn flip<S: Ord>() -> impl FnOnce(Cont<bool, BTreeSet<S>>) -> BTreeSet<S> {
+    choose([true, false])
+}
+```
+
+### NQueens
+
 
 ## Performance
 
