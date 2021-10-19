@@ -4,10 +4,11 @@ version = "0.1.0"
 authors = ["Shiwei Zhang <ylxdzsw@gmail.com>"]
 edition = "2021"
 
-[lib]
-proc-macro = true
-
 [dependencies]
-syn = { version = "1.0", features = ["full", "visit-mut", "extra-traits"] }
-proc-macro2 = "1.0"
-uuid = { version = "0.8", features = ["v4"] }
+decon-macro-impl = { path = "./decon-macro-impl" }
+
+# Rust doesn't allow export anything else in a proc_macro crate.
+[workspace]
+members = [
+    "decon-macro-impl",
+]

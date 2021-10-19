@@ -1,4 +1,4 @@
-use decon::reset;
+use decon::{reset, Cont};
 
 fn main() {
     println!("hello fuck and {}", raw(1));
@@ -6,17 +6,13 @@ fn main() {
     println!("hello fuck and {}", mannual_cps_no_inline());
 }
 
-fn shift(f: impl Fn(Box<dyn Fn(usize) -> usize>) -> usize) -> usize {
-    unimplemented!()
-}
-
 #[reset]
 fn raw(n: usize) -> usize {
-    let a = shift(|cont: Box<dyn Fn(usize) -> usize>| {
+    let a = shift(|cont: Cont<usize, usize>| {
         cont(1) + cont(2)
     });
     println!("{}", a);
-    let b = shift(|cont: Box<dyn Fn(usize) -> usize>| {
+    let b = shift(|cont: Cont<usize, usize>| {
         cont(3) + 4
     });
     a + b
