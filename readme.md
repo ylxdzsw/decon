@@ -10,17 +10,23 @@ Decon provides a `#[reset]` attribute for function definitions. Inside the funct
 where `S` is the return type of the `#[reset]` function and `T` is the type of the `shift` expression. The argument
 passed to `f` is the (delimited) continuation of the `shift` expression.
 
+`shift` optionally accepts the second argument, which specifies the type of the continuation (`Box`ed or (mut) borrowed).
+See tests/basic.rs for examples.
+
+Decon is still under development and anything other than the examples may not work. Specifically, `shift` inside control
+flows (`if`, `loop`, etc.) do not work for now.
+
 ## Examples
 
 ### Yin-Yang Puzzle
 
-> https://www.zhihu.com/question/27683900
+> https://stackoverflow.com/questions/2694679/how-does-the-yin-yang-puzzle-work
 
 ```rust
 struct Rec(Rc<Cont<Rec, ()>>);
 
 #[reset]
-fn yinyang() {
+fn main() {
     let yin = shift(|cont: Cont<Rec, ()>| {
         let cont = Rc::new(cont);
         cont(Rec(cont.clone()))
@@ -48,7 +54,7 @@ implementations of `choose` and `flip` cannot be changed at call site.
 fn f() -> BTreeSet<i32> {
     let a = shift(choose(0..=2));
     let b = shift(choose(0..=2));
-    if shift(flip()) {
+    if shift(flip) {
         [a + b].into_iter().collect()
     } else {
         [a - b].into_iter().collect()
@@ -61,16 +67,10 @@ fn choose<T, S: Ord>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(Cont<T, BTr
     }
 }
 
-fn flip<S: Ord>() -> impl FnOnce(Cont<bool, BTreeSet<S>>) -> BTreeSet<S> {
-    choose([true, false])
+fn flip<S: Ord>(cont: Cont<bool, BTreeSet<S>>) -> BTreeSet<S> {
+    choose([true, false])(cont)
 }
 ```
-
-### NQueens
-
-
-## Performance
-
 
 ## Limitations
 

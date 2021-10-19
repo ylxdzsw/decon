@@ -7,7 +7,6 @@ fn test_no_option() {
         let a = shift(|cont: Cont<usize, usize>| {
             cont(1) + cont(2)
         });
-        println!("{}", a);
         let b = shift(|cont: Cont<usize, usize>| {
             cont(3) + 4
         });
@@ -24,7 +23,6 @@ fn test_box() {
         let a = shift(|cont: ContBox<usize, usize>| {
             cont(1) + cont(2)
         }, ContBox);
-        println!("{}", a);
         let b = shift(|cont: ContBox<usize, usize>| {
             cont(3) + 4
         }, ContBox);
@@ -41,7 +39,6 @@ fn test_ref() {
         let a = shift(|cont: ContRef<usize, usize>| {
             cont(1) + cont(2)
         }, ContRef);
-        println!("{}", a);
         let b = shift(|cont: ContRef<usize, usize>| {
             cont(3) + 4
         }, ContRef);
@@ -58,7 +55,6 @@ fn test_mut() {
         let a = shift(|cont: ContMut<usize, usize>| {
             cont(1) + cont(2)
         }, ContMut);
-        println!("{}", a);
         let b = shift(|cont: ContMut<usize, usize>| {
             cont(3) + 4
         }, ContMut);
@@ -75,7 +71,6 @@ fn test_wrap() {
         let a = shift(|cont: ContWrap<usize, usize>| {
             cont.0(1) + cont.0(2)
         }, ContWrap);
-        println!("{}", a);
         let b = shift(|cont: ContWrap<usize, usize>| {
             cont.0(3) + 4
         }, ContWrap);

@@ -7,3 +7,5 @@ pub type ContRef<'a, T, S> = &'a dyn Fn(T) -> S;
 pub type ContMut<'a, T, S> = &'a mut dyn Fn(T) -> S;
 
 // TODO: inlining closures? it may also simplify the yin yang example
+// TODO: the simple stmt-based non-recursive apporach cannot handle shifts that inside control flows (loop { shift(...) })
+//       specialize if and while and make them work?

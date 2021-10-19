@@ -9,7 +9,7 @@ fn main() {
 fn f() -> BTreeSet<i32> {
     let a = shift(choose(0..=2));
     let b = shift(choose(0..=2));
-    if shift(flip()) {
+    if shift(flip) {
         [a + b].into_iter().collect()
     } else {
         [a - b].into_iter().collect()
@@ -22,6 +22,6 @@ fn choose<T, S: Ord>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(Cont<T, BTr
     }
 }
 
-fn flip<S: Ord>() -> impl FnOnce(Cont<bool, BTreeSet<S>>) -> BTreeSet<S> {
-    choose([true, false])
+fn flip<S: Ord>(cont: Cont<bool, BTreeSet<S>>) -> BTreeSet<S> {
+    choose([true, false])(cont)
 }
