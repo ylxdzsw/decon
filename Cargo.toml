@@ -5,10 +5,7 @@ authors = ["Shiwei Zhang <ylxdzsw@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-decon-macro-impl = { path = "./decon-macro-impl" }
+decon-macro-impl = { path = "./macro-impl" }
 
 # Rust doesn't allow export anything else in a proc_macro crate.
 [workspace]
-members = [
-    "decon-macro-impl",
-]
