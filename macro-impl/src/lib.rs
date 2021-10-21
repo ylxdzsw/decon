@@ -83,14 +83,14 @@ fn transform(stmt: &mut Stmt) -> Option<(ContinuationCaptureOption, Expr, Ident)
                                     if let Some(ident) = path.get_ident() {
                                         match &ident.to_string()[..] {
                                             "Cont" | "ContBox" | "ContBoxMut" | "ContBoxOnce" | "ContBoxClonable" | "ContBoxMutClonable" | "ContBoxOnceClonable" => break ContinuationCaptureOption::Box,
-                                            "ContRef" => break ContinuationCaptureOption::Ref,
-                                            "ContMut" => break ContinuationCaptureOption::Mut,
+                                            "ContRef" | "ContRefClonable" => break ContinuationCaptureOption::Ref,
+                                            "ContMut" | "ContMutClonable" => break ContinuationCaptureOption::Mut,
                                             _ => {}
                                         }
                                     }
                                 }
                                 panic!("the second argument to `shift` can only be one of the following:
-                                    Cont, ContBox, ContRef, ContMut, ContBoxMut, ContBoxOnce, ContBoxClonable, ContBoxMutClonable, ContBoxOnceClonable")
+                                    Cont, ContBox, ContRef, ContRefClonable, ContMut, ContMutClonable, ContBoxMut, ContBoxOnce, ContBoxClonable, ContBoxMutClonable, ContBoxOnceClonable")
                             }
                             _ => panic!("shift accepts only either one or two argument(s)")
                         };

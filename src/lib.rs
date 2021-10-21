@@ -2,18 +2,15 @@ pub use decon_macro_impl::{reset, reset_func};
 use dyn_clone::DynClone;
 
 pub type Cont<T=(), S=()> = ContBox<T, S>;
-pub type ContBox<T=(), S=()> = Box<dyn Fn(T) -> S>;
 pub type ContRef<'a, T=(), S=()> = &'a dyn Fn(T) -> S;
-pub type ContMut<'a, T=(), S=()> = &'a mut dyn FnMut(T) -> S;
-
 pub type ContRefClonable<'a, T=(), S=()> = &'a dyn ClonableFn<T, S>;
+pub type ContMut<'a, T=(), S=()> = &'a mut dyn FnMut(T) -> S;
 pub type ContMutClonable<'a, T=(), S=()> = &'a mut dyn ClonableFnMut<T, S>;
-
-
-pub type ContBoxMut<T=(), S=()> = Box<dyn FnMut(T) -> S>;
-pub type ContBoxOnce<'a, T=(), S=()> = Box<dyn FnOnce(T) -> S>;
+pub type ContBox<T=(), S=()> = Box<dyn Fn(T) -> S>;
 pub type ContBoxClonable<T=(), S=()> = Box<dyn ClonableFn<T, S>>;
+pub type ContBoxMut<T=(), S=()> = Box<dyn FnMut(T) -> S>;
 pub type ContBoxMutClonable<T=(), S=()> = Box<dyn ClonableFnMut<T, S>>;
+pub type ContBoxOnce<'a, T=(), S=()> = Box<dyn FnOnce(T) -> S>;
 pub type ContBoxOnceClonable<'a, T=(), S=()> = Box<dyn ClonableFnOnce<T, S>>;
 
 // maybe still useful for internal mutability. Otherwise Rc<ContBox> should be enough.
