@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 decon-macro-impl = { path = "./macro-impl" }
+dyn-clone = "1.0"
 
 # Rust refuses to export anything not a proc_macro in a proc_macro crate.
 [workspace]

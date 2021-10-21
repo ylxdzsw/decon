@@ -1,6 +1,8 @@
 use syn::{Expr, ExprPath, Ident, Stmt, __private::{Span, ToTokens}, parse_quote, visit_mut::{self, VisitMut}};
 use uuid::Uuid;
 
+enum ContinuationOption { Box, Ref, Mut }
+
 #[proc_macro_attribute]
 pub fn reset(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut func: syn::ItemFn = syn::parse(input).unwrap();
@@ -13,41 +15,31 @@ pub fn reset(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> 
         *inner_most_body = stmts;
 
         let tail_call: Expr = match opt {
-            ContinuationOption::ContBox => parse_quote! {
+            ContinuationOption::Box => parse_quote! {
                 (#lambda)(Box::new(move |#symbol| {}))
             },
-            ContinuationOption::ContRef => parse_quote! {
+            ContinuationOption::Ref => parse_quote! {
                 (#lambda)(&|#symbol| {})
             },
-            ContinuationOption::ContMut => parse_quote! {
+            ContinuationOption::Mut => parse_quote! {
                 (#lambda)(&mut |#symbol| {})
-            },
-            ContinuationOption::ContWrap => parse_quote! {
-                (#lambda)(decon::ContWrap(Box::new(move |#symbol| {}))) // any more robust way to do this?
-            },
+            }
         };
 
         inner_most_body.push(Stmt::Expr(tail_call));
         let continuation = loop { // how to write this clusterfuck properly? A possible way: make this loop a recursive call so we can directly interpolate the body in the quote
             if let Stmt::Expr(Expr::Call(expr_call)) = inner_most_body.last_mut().unwrap() {
                 match opt {
-                    ContinuationOption::ContBox => if let Expr::Call(expr_call) = &mut expr_call.args[0] {
+                    ContinuationOption::Box => if let Expr::Call(expr_call) = &mut expr_call.args[0] {
                         if let Expr::Closure(closure) = &mut expr_call.args[0] {
                             break closure
                         }
                     },
-                    ContinuationOption::ContRef | ContinuationOption::ContMut => if let Expr::Reference(expr_ref) = &mut expr_call.args[0] {
+                    ContinuationOption::Ref | ContinuationOption::Mut => if let Expr::Reference(expr_ref) = &mut expr_call.args[0] {
                         if let Expr::Closure(closure) = &mut *expr_ref.expr {
                             break closure
                         }
-                    },
-                    ContinuationOption::ContWrap => if let Expr::Call(expr_call) = &mut expr_call.args[0] {
-                        if let Expr::Call(expr_call) = &mut expr_call.args[0] {
-                            if let Expr::Closure(closure) = &mut expr_call.args[0] {
-                                break closure
-                            }
-                        }
-                    },
+                    }
                 }
             }
             unreachable!()
@@ -62,11 +54,6 @@ pub fn reset(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> 
 
     inner_most_body.extend(stmts.into_iter());
     func.into_token_stream().into()
-}
-
-#[allow(clippy::enum_variant_names)]
-enum ContinuationOption {
-    ContBox, ContRef, ContMut, ContWrap
 }
 
 struct CPSTransformState {
@@ -106,21 +93,20 @@ fn transform(stmt: &mut Stmt) -> Option<(ContinuationOption, Expr, Ident)> {
                 if let Expr::Path(ExprPath { attrs: _, qself: None, path }) = &*expr_call.func {
                     if path.is_ident("shift") {
                         let opt = match expr_call.args.len() {
-                            1 => ContinuationOption::ContBox,
+                            1 => ContinuationOption::Box,
                             2 => loop {
                                 if let Expr::Path(ExprPath { attrs: _, qself: None, path }) = expr_call.args.pop().unwrap().into_value() {
                                     if let Some(ident) = path.get_ident() {
                                         match &ident.to_string()[..] {
-                                            "Cont" | "ContBox" => break ContinuationOption::ContBox,
-                                            "ContRef" => break ContinuationOption::ContRef,
-                                            "ContMut" => break ContinuationOption::ContMut,
-                                            "ContWrap" => break ContinuationOption::ContWrap,
+                                            "Cont" | "ContBox" | "ContBoxMut" | "ContBoxOnce" | "ContBoxClonable" | "ContBoxMutClonable" | "ContBoxOnceClonable" => break ContinuationOption::Box,
+                                            "ContRef" => break ContinuationOption::Ref,
+                                            "ContMut" => break ContinuationOption::Mut,
                                             _ => {}
                                         }
                                     }
                                 }
                                 panic!("the second argument to `shift` can only be one of the following:
-                                    Cont, ContBox, ContRef, ContMut, ContWrap")
+                                    Cont, ContBox, ContRef, ContMut, ContBoxMut, ContBoxOnce, ContBoxClonable, ContBoxMutClonable, ContBoxOnceClonable")
                             }
                             _ => panic!("shift accepts only either one or two argument(s)")
                         };

@@ -63,19 +63,3 @@ fn test_mut() {
 
     assert_eq!(f(), 17)
 }
-
-#[test]
-fn test_wrap() {
-    #[reset]
-    fn f() -> usize {
-        let a = shift(|cont: ContWrap<usize, usize>| {
-            cont.0(1) + cont.0(2)
-        }, ContWrap);
-        let b = shift(|cont: ContWrap<usize, usize>| {
-            cont.0(3) + 4
-        }, ContWrap);
-        a + b
-    }
-
-    assert_eq!(f(), 17)
-}
