@@ -1,9 +1,9 @@
-use decon::{reset, Cont};
+use decon::{reset_func, Cont};
 use std::{io::{Write, stdout}, rc::Rc};
 
 struct Rec(Rc<Cont<Rec, ()>>);
 
-#[reset]
+#[reset_func]
 fn main() {
     let yin = shift(|cont: Cont<Rec, ()>| {
         let cont = Rc::new(cont);

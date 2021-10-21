@@ -2,7 +2,7 @@ use decon::*;
 
 #[test]
 fn test_no_option() {
-    #[reset]
+    #[reset_func]
     fn f() -> usize {
         let a = shift(|cont: Cont<usize, usize>| {
             cont(1) + cont(2)
@@ -18,7 +18,7 @@ fn test_no_option() {
 
 #[test]
 fn test_box() {
-    #[reset]
+    #[reset_func]
     fn f() -> usize {
         let a = shift(|cont: ContBox<usize, usize>| {
             cont(1) + cont(2)
@@ -34,7 +34,7 @@ fn test_box() {
 
 #[test]
 fn test_ref() {
-    #[reset]
+    #[reset_func]
     fn f() -> usize {
         let a = shift(|cont: ContRef<usize, usize>| {
             cont(1) + cont(2)
@@ -50,7 +50,7 @@ fn test_ref() {
 
 #[test]
 fn test_mut() {
-    #[reset]
+    #[reset_func]
     fn f() -> usize {
         let a = shift(|cont: ContMut<usize, usize>| {
             cont(1) + cont(2)

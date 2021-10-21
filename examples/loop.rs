@@ -1,24 +1,34 @@
-use decon::{reset, ContBoxMutClonable};
+use std::rc::Rc;
+
+use decon::*;
 
 fn main() {
     println!("{:?}", f());
 }
 
-#[reset]
+#[reset_func]
 fn f() {
-    let mut a: Vec<usize> = vec![];
-    shift(|cont: ContBoxMutClonable| {
-        for i in 0..=2 {
-            cont.clone()(())
-        }
-    }, ContBoxMutClonable);
-    a.push(1);
-    println!("{:?}", a);
+    let (loop_back, mut v) = shift(|cont| get_cc(cont, Default::default()));
+    let next = shift(fork([0, 1]), ContBox);
+    v.push(next);
+    if v.len() <= 5 {
+        loop_back.0((loop_back.clone(), v.clone()));
+    } else {
+        println!("{:?}", v);
+    }
 }
 
-#[reset]
-fn g(outer_cont: ContBoxMutClonable) {
-    shift(|mut cont: ContBoxMutClonable| {
-        cont(())
-    })
+#[derive(Clone)]
+struct Rec(Rc<ContBoxClonable<(Rec, Vec<usize>), ()>>);
+fn get_cc(cont: ContBoxClonable<(Rec, Vec<usize>), ()>, v: Vec<usize>) {
+    let cont = Rc::new(cont);
+    cont((Rec(cont.clone()), v))
+}
+
+fn fork<T: Clone>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(ContBoxMutClonable<T, ()>) {
+    move |cont| {
+        for i in iter {
+            dyn_clone::clone_box(&cont)(i)
+        }
+    }
 }

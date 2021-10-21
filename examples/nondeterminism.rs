@@ -1,11 +1,11 @@
-use decon::{reset, Cont};
+use decon::{reset_func, Cont};
 use std::collections::BTreeSet;
 
 fn main() {
     println!("{:?}", f());
 }
 
-#[reset]
+#[reset_func]
 fn f() -> BTreeSet<i32> {
     let a = shift(choose(0..=2));
     let b = shift(choose(0..=2));

@@ -1,70 +1,54 @@
-use syn::{Expr, ExprPath, Ident, Stmt, __private::{Span, ToTokens}, parse_quote, visit_mut::{self, VisitMut}};
+use syn::{Block, Expr, ExprPath, Ident, Stmt, __private::{Span, ToTokens}, parse::Parser, parse_quote, token::Brace, visit_mut::{self, VisitMut}};
 use uuid::Uuid;
 
-enum ContinuationOption { Box, Ref, Mut }
+enum ContinuationCaptureOption { Box, Ref, Mut }
 
 #[proc_macro_attribute]
-pub fn reset(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn reset_func(_args: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut func: syn::ItemFn = syn::parse(input).unwrap();
+    transform_block(&mut func.block);
+    func.into_token_stream().into()
+}
 
-    let mut stmts = core::mem::take(&mut func.block.stmts);
-    let mut inner_most_body = &mut func.block.stmts;
+#[proc_macro]
+pub fn reset(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let stmts: Vec<Stmt> = Block::parse_within.parse(input).unwrap();
+    let mut block = Block { brace_token: Brace { span: Span::call_site() }, stmts };
+    transform_block(&mut block);
+    block.into_token_stream().into()
+}
 
-    while let Some(CPSTransformState { i, opt, lambda, symbol }) = cps(&mut stmts) {
-        let rest = stmts.drain(i..).collect();
-        *inner_most_body = stmts;
+fn transform_block(block: &mut Block) {
+    if let Some(CPSTransformState { i, opt, lambda, symbol }) = cps_first(&mut block.stmts[..]) {
+        let mut rest = Block { brace_token: block.brace_token, stmts: block.stmts.drain(i..).collect() };
+        
+        transform_block(&mut rest);
 
         let tail_call: Expr = match opt {
-            ContinuationOption::Box => parse_quote! {
-                (#lambda)(Box::new(move |#symbol| {}))
+            ContinuationCaptureOption::Box => parse_quote! {
+                (#lambda)(Box::new(move |#symbol| {#rest}))
             },
-            ContinuationOption::Ref => parse_quote! {
-                (#lambda)(&|#symbol| {})
+            ContinuationCaptureOption::Ref => parse_quote! {
+                (#lambda)(&|#symbol| {#rest})
             },
-            ContinuationOption::Mut => parse_quote! {
-                (#lambda)(&mut |#symbol| {})
+            ContinuationCaptureOption::Mut => parse_quote! {
+                (#lambda)(&mut |#symbol| {#rest})
             }
         };
 
-        inner_most_body.push(Stmt::Expr(tail_call));
-        let continuation = loop { // how to write this clusterfuck properly? A possible way: make this loop a recursive call so we can directly interpolate the body in the quote
-            if let Stmt::Expr(Expr::Call(expr_call)) = inner_most_body.last_mut().unwrap() {
-                match opt {
-                    ContinuationOption::Box => if let Expr::Call(expr_call) = &mut expr_call.args[0] {
-                        if let Expr::Closure(closure) = &mut expr_call.args[0] {
-                            break closure
-                        }
-                    },
-                    ContinuationOption::Ref | ContinuationOption::Mut => if let Expr::Reference(expr_ref) = &mut expr_call.args[0] {
-                        if let Expr::Closure(closure) = &mut *expr_ref.expr {
-                            break closure
-                        }
-                    }
-                }
-            }
-            unreachable!()
-        };
-        if let Expr::Block(block) = &mut *continuation.body {
-            inner_most_body = &mut block.block.stmts;
-        } else {
-            unreachable!()
-        }
-        stmts = rest;
+        block.stmts.push(Stmt::Expr(tail_call))
     }
-
-    inner_most_body.extend(stmts.into_iter());
-    func.into_token_stream().into()
 }
 
 struct CPSTransformState {
     i: usize, // index of the first stmt that contains `shift`. It is also already modifed.
-    opt: ContinuationOption,
+    opt: ContinuationCaptureOption,
     lambda: Expr,
     symbol: Ident,
 }
 
 // this function split the statements into two parts, by the first occurence of `shift`
-fn cps(code: &mut [Stmt]) -> Option<CPSTransformState> {
+fn cps_first(code: &mut [Stmt]) -> Option<CPSTransformState> {
     for (i, stmt) in code.iter_mut().enumerate() {
         if let Some((opt, lambda, symbol)) = transform(stmt) {
             return Some(CPSTransformState { i, opt, lambda, symbol })
@@ -74,7 +58,7 @@ fn cps(code: &mut [Stmt]) -> Option<CPSTransformState> {
     None
 }
 
-fn transform(stmt: &mut Stmt) -> Option<(ContinuationOption, Expr, Ident)> {
+fn transform(stmt: &mut Stmt) -> Option<(ContinuationCaptureOption, Expr, Ident)> {
     let expr = match stmt {
         Stmt::Local(x) => &mut x.init.as_mut()?.1,
         Stmt::Item(_) => unimplemented!(),
@@ -84,7 +68,7 @@ fn transform(stmt: &mut Stmt) -> Option<(ContinuationOption, Expr, Ident)> {
 
     #[derive(Default)]
     struct ShiftVisitor {
-        result: Option<(ContinuationOption, Expr, Ident)>, // the handler (argument to shift) and the placeholder symbol
+        result: Option<(ContinuationCaptureOption, Expr, Ident)>, // the handler (argument to shift) and the placeholder symbol
     }
 
     impl VisitMut for ShiftVisitor {
@@ -93,14 +77,14 @@ fn transform(stmt: &mut Stmt) -> Option<(ContinuationOption, Expr, Ident)> {
                 if let Expr::Path(ExprPath { attrs: _, qself: None, path }) = &*expr_call.func {
                     if path.is_ident("shift") {
                         let opt = match expr_call.args.len() {
-                            1 => ContinuationOption::Box,
+                            1 => ContinuationCaptureOption::Box,
                             2 => loop {
                                 if let Expr::Path(ExprPath { attrs: _, qself: None, path }) = expr_call.args.pop().unwrap().into_value() {
                                     if let Some(ident) = path.get_ident() {
                                         match &ident.to_string()[..] {
-                                            "Cont" | "ContBox" | "ContBoxMut" | "ContBoxOnce" | "ContBoxClonable" | "ContBoxMutClonable" | "ContBoxOnceClonable" => break ContinuationOption::Box,
-                                            "ContRef" => break ContinuationOption::Ref,
-                                            "ContMut" => break ContinuationOption::Mut,
+                                            "Cont" | "ContBox" | "ContBoxMut" | "ContBoxOnce" | "ContBoxClonable" | "ContBoxMutClonable" | "ContBoxOnceClonable" => break ContinuationCaptureOption::Box,
+                                            "ContRef" => break ContinuationCaptureOption::Ref,
+                                            "ContMut" => break ContinuationCaptureOption::Mut,
                                             _ => {}
                                         }
                                     }
