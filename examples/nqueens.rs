@@ -5,7 +5,7 @@ use decon::*;
 type Board = Vec<i32>;
 
 #[derive(Clone)]
-struct Rec<T>(Rc<ContBoxClonable<(Rec<T>, T), ()>>);
+struct Rec<T>(Rc<ContBoxClonable<(Rec<T>, T)>>);
 
 fn main() {
     nqueens(8)
@@ -24,21 +24,23 @@ fn nqueens(n: i32) {
 
     board.push(next);
     if board.len() < n as _ {
-        loop_back.0((loop_back.clone(), board.clone()));
+        loop_back.0((loop_back.clone(), board));
     } else {
         println!("{:?}", board);
     }
 }
 
-fn get_cc<T: Default>(cont: ContBoxClonable<(Rec<T>, T), ()>) {
+fn get_cc<T: Default>(cont: ContBoxClonable<(Rec<T>, T)>) {
     let cont = Rc::new(cont);
     cont((Rec(cont.clone()), Default::default()))
 }
 
-fn fork<T: Clone>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(ContBoxMutClonable<T, ()>) {
+fn fork<T: Clone>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(ContBoxOnceClonable<T>) {
     move |cont| {
         for i in iter {
             cont.clone()(i);
         }
     }
 }
+
+// TODO: simplify the loop_back by store it to an Rc<RefCell<>> in get_cc, so its signature can be simply ContBoxClonable<T, ()>

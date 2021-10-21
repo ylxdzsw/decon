@@ -5,9 +5,9 @@ DElimited CONtinuation for Rust.
 
 ## Usage
 
-Decon provides a `#[reset]` attribute for function definitions. Inside the function body, one gains access to a keyword
-(in the form of a function) `shift`, which accepts a single argument `f` of type `fn(Box<dyn FnMut(T) -> S>) -> S`,
-where `S` is the return type of the `#[reset]` function and `T` is the type of the `shift` expression. The argument
+Decon provides a `#[reset_func]` attribute for function definitions. Inside the function body, one gains access to a
+keyword (in the form of a function) `shift`, which accepts a single argument `f` of type `fn(Box<dyn FnMut(T) -> S>) -> S`,
+where `S` is the return type of the `#[reset_func]` function and `T` is the type of the `shift` expression. The argument
 passed to `f` is the (delimited) continuation of the `shift` expression.
 
 `shift` optionally accepts the second argument, which specifies the type of the continuation (`Box`ed or (mut) borrowed).
@@ -15,6 +15,8 @@ See tests/basic.rs for examples.
 
 Decon is still under development and anything other than the examples may not work. Specifically, `shift` inside control
 flows (`if` branches, `loop`, etc.) do not work for now.
+
+`reset! {}` can be used inside a function.
 
 ## Examples
 
@@ -25,7 +27,7 @@ flows (`if` branches, `loop`, etc.) do not work for now.
 ```rust
 struct Rec(Rc<Cont<Rec, ()>>);
 
-#[reset]
+#[reset_func]
 fn main() {
     let yin = shift(|cont: Cont<Rec, ()>| {
         let cont = Rc::new(cont);
@@ -50,7 +52,7 @@ handlers. Unfortunately, as Decon is lexically scoped and statically typed, `f()
 implementations of `choose` and `flip` cannot be changed at call site.
 
 ```rust
-#[reset]
+#[reset_func]
 fn f() -> BTreeSet<i32> {
     let a = shift(choose(0..=2));
     let b = shift(choose(0..=2));
@@ -69,6 +71,50 @@ fn choose<T, S: Ord>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(Cont<T, BTr
 
 fn flip<S: Ord>(cont: Cont<bool, BTreeSet<S>>) -> BTreeSet<S> {
     choose([true, false])(cont)
+}
+```
+
+### NQueens
+
+This example will print all solutions to nqueens. It also shows how to clone a continuation as well as its captured
+states.
+
+```rust
+type Board = Vec<i32>;
+
+#[derive(Clone)]
+struct Rec<T>(Rc<ContBoxClonable<(Rec<T>, T)>>);
+
+#[reset_func]
+fn nqueens(n: i32) {
+    // board[i] = j means a queen in (i,j)
+    let (loop_back, mut board): (Rec<Board>, Board) = shift(get_cc);
+    let next_row = board.len();
+    let next = shift(fork(0..n));
+
+    if board.iter().enumerate().any(|(i, j)| j == &next || (next - j).abs() as usize == next_row - i) {
+        return
+    }
+
+    board.push(next);
+    if board.len() < n as _ {
+        loop_back.0((loop_back.clone(), board));
+    } else {
+        println!("{:?}", board);
+    }
+}
+
+fn get_cc<T: Default>(cont: ContBoxClonable<(Rec<T>, T)>) {
+    let cont = Rc::new(cont);
+    cont((Rec(cont.clone()), Default::default()))
+}
+
+fn fork<T: Clone>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(ContBoxOnceClonable<T>) {
+    move |cont| {
+        for i in iter {
+            cont.clone()(i);
+        }
+    }
 }
 ```
 
