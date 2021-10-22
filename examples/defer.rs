@@ -8,7 +8,7 @@ fn main() {
     };
 }
 
-fn defer(clear: impl Fn()) -> impl FnMut(ContRef) {
+fn defer(clear: impl FnOnce()) -> impl FnOnce(ContRef) {
     move |cont| { cont(()); clear() }
 }
 
