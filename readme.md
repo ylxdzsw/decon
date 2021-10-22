@@ -5,18 +5,16 @@ DElimited CONtinuation for Rust.
 
 ## Usage
 
-Decon provides a `#[reset_func]` attribute for function definitions. Inside the function body, one gains access to a
-keyword (in the form of a function) `shift`, which accepts a single argument `f` of type `fn(Box<dyn FnMut(T) -> S>) -> S`,
-where `S` is the return type of the `#[reset_func]` function and `T` is the type of the `shift` expression. The argument
-passed to `f` is the (delimited) continuation of the `shift` expression.
+Decon provides a `reset! {}` block inside which one gains access to a new keyword (in the form of a function) `shift`,
+which accepts a single argument `f` of type `fn(Box<dyn FnMut(T) -> S>) -> S`, where `S` is the type of the `reset`
+expression and `T` is the type of the `shift` expression. The argument passed to `f` is the (delimited) continuation of
+the `shift` expression. A function attribute `#[reset_func]` is equivalent to `reset!` a whole function definition.
 
 `shift` optionally accepts the second argument, which specifies the type of the continuation (`Box`ed or (mut) borrowed).
 See tests/basic.rs for examples.
 
 Decon is still under development and anything other than the examples may not work. Specifically, `shift` inside control
-flows (`if` branches, `loop`, etc.) do not work for now.
-
-`reset! {}` can be used inside a function.
+flows (`if` branches, `loop`, etc.) do not work for now. _You know how to implement loops now you have `call/cc`, right?_
 
 ## Examples
 
@@ -120,8 +118,7 @@ fn fork<T: Clone>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(ContBoxOnceClo
 
 ## Limitations
 
-1. Decon is implemented syntactically, so all `shift`s must lexically appear in the body of `#[reset]`. One may however
-   use macros to split the body of a `#[reset]` function. Alternative implementations typically catch stack unwinding,
-   which don't have this restriction.
+1. Decon is implemented syntactically, so all `shift`s must lexically appear in the body of `reset`. Alternative
+   implementations typically catch stack unwinding, which don't have this restriction.
 2. Decon's AST traversing order is undefined, i.e., if there are multiple `shift`s in a single statement, the order of
    continuations may differ from the actual execution order. Spliting such statements by `let`s is highly recommened.
