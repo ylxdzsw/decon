@@ -45,20 +45,20 @@ fn main() {
 
 ### Non-deterministic
 
-The following program will return a set `{-2, -1, 0, 1, 2, 3, 4}`. It corresponds to the `list` monad in effect
-handlers. Unfortunately, as Decon is lexically scoped and statically typed, `f()` cannot simply return `i32` and the
-implementations of `choose` and `flip` cannot be changed at call site.
+The following program will return a set `{-2, -1, 0, 1, 2, 3, 4}`.
 
 ```rust
-#[reset_func]
-fn f() -> BTreeSet<i32> {
-    let a = shift(choose(0..=2));
-    let b = shift(choose(0..=2));
-    if shift(flip) {
-        [a + b].into_iter().collect()
-    } else {
-        [a - b].into_iter().collect()
-    }
+fn main() {
+    let r = reset! {
+        let a = shift(choose(0..=2));
+        let b = shift(choose(0..=2));
+        if shift(flip) {
+            [a + b].into_iter().collect()
+        } else {
+            [a - b].into_iter().collect()
+        }
+    };
+    println!("{:?}", r);
 }
 
 fn choose<T, S: Ord>(iter: impl IntoIterator<Item=T>) -> impl FnOnce(Cont<T, BTreeSet<S>>) -> BTreeSet<S> {
